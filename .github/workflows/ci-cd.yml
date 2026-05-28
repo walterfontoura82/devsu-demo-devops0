@@ -1,0 +1,46 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-test-docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8 coverage
+
+      - name: Run static code analysis
+        run: |
+          flake8 .
+
+      - name: Run tests with coverage
+        env:
+          DJANGO_SECRET_KEY: github-actions-secret
+          DATABASE_NAME: db.sqlite3
+
+        run: |
+          coverage run manage.py test
+          coverage report
+
+      - name: Build Docker image
+        run: |
+          docker build -t devsu-demo-devops-python:latest .
